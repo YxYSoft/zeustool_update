@@ -150,27 +150,54 @@ server {
 nginx -t && nginx -s reload
 ```
 
+### GitHub Pages
+
+已启用，地址：https://yxysoft.github.io/zeustool_update/
+
+改过一次就行，之后 push 自动发布：
+
+1. 仓库 Settings → Pages
+2. **Source**: `Deploy from a branch`
+3. **Branch**: `main` + `/ (root)` → Save
+
+> 注意：GitHub Pages 的 CDN 给 `.json` 默认缓存 10 分钟。`app.js` 已用时间戳参数绕过，所以不影响使用；但如果直接拿浏览器地址栏打开 `data/updates.json`，可能要多等几分钟才看到新内容。
+
 ### Cloudflare Pages
 
-1. 仓库推到 GitHub / GitLab。
-2. Cloudflare Dashboard → Workers & Pages → Create → Pages → 连接该仓库。
+**必须用「连接 Git」方式创建，不要用「上传资产」直传** —— 直传是一次性快照，之后 push 多少条都不会更新，页面永远停在当初上传的那一版。
+
+正确步骤：
+
+1. Cloudflare Dashboard → Workers & Pages → Create → Pages → **Connect to Git**
+2. 选中 `YxYSoft/zeustool_update`，Production branch 填 `main`
 3. 构建设置全部留空：
    - **Framework preset**: None
    - **Build command**: 留空
-   - **Build output directory**: `/`（或仓库根目录）
-4. 保存后每次 push 自动部署，大约几十秒生效。
+   - **Build output directory**: `/`
+4. Save and Deploy。之后每次 push 自动部署，几十秒生效。
 
-可选：在仓库根目录加一个 `_headers` 文件，确保 JSON 不被 CDN 长缓存（Cloudflare Pages 会自动识别，nginx 会忽略这个文件）：
+如果项目当初是直传建的，不用重建：进入该项目 → Settings → Builds & deployments → 找到 **Connect to Git** 把仓库接上，再 Retry deployment 即可。
 
+### 验证部署是否真的更新了
+
+```bash
+curl -s "https://yxysoft.github.io/zeustool_update/data/updates.json?_=$(date +%s)" | head -c 200
 ```
-/data/updates.json
-  Cache-Control: no-cache, must-revalidate
-```
+
+看到最新的 `download.note` 就说明生效了。
 
 ## 常见问题
 
 **改完 JSON 页面没变？**
-浏览器或 CDN 缓存。`app.js` 已经用 `cache: 'no-cache'` 请求数据，强制刷新（Ctrl/Cmd + Shift + R）一般就正常了；如果用了别的 CDN，检查它是否忽略了 `Cache-Control`。
+
+按这个顺序排查，前两步能解决 9 成情况：
+
+1. **部署到底跑没跑** —— 最容易忽略的一条。去托管后台看 Deployments 列表里有没有你刚 push 的那个提交。没有就是没接 Git、或者接的是别的分支，跟缓存无关。
+2. **浏览器缓存** —— `app.js` 每次请求都带唯一时间戳（`?_=时间`），CDN 和浏览器都拿不到旧副本；剩下的可能只是页面本身（`index.html`）被缓存，硬刷新（Ctrl/Cmd + Shift + R）即可。
+3. **改了但没 push** —— `git status` 看一下。
+
+**部署方式怎么判断是不是直传？**
+托管后台的 Deployments 列表里，每条部署都会标注来源提交（如 `b7e4ca8`）或显示为手动上传。一直是同一个提交不动的，就是直传。
 
 **页面显示「语法有误」？**
 JSON 比普通文本严格：不能有多余的逗号、不能用单引号、最后一项后面不能有逗号。用任意在线 JSON 校验器贴一下就能定位。

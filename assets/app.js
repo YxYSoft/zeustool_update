@@ -471,7 +471,12 @@
     showStatus(nodes, true);
   }
 
-  fetch(DATA_URL, { cache: 'no-cache' })
+  /* 带唯一查询参数：GitHub Pages 的 CDN 默认给 .json 缓存 10 分钟，
+     只靠 cache:'no-cache' 拦不住中间层。加时间戳后每次都是全新副本，
+     这是「改完 JSON push 就立刻生效」的关键。 */
+  var reqUrl = DATA_URL + (DATA_URL.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now();
+
+  fetch(reqUrl, { cache: 'no-cache' })
     .then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status + ' — 找不到 ' + DATA_URL);
       return res.text();
