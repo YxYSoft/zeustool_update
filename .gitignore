@@ -1,0 +1,7 @@
+# 工作区数据（非站点内容，不发布）
+.workbuddy/
+
+# 系统垃圾文件
+.DS_Store
+Thumbs.db
+desktop.ini

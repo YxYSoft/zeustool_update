@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>挂机工具更新日志</title>
+<meta name="description" content="挂机工具更新日志：记录每一次版本改动。">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <h1 id="site-title">挂机工具更新日志</h1>
+      <p id="site-subtitle" class="subtitle">记录每一次版本改动</p>
+    </div>
+    <div class="meta">
+      <div class="latest" id="latest-box" hidden>
+        <span class="meta-label">最新版本</span>
+        <strong id="latest-version">—</strong>
+      </div>
+      <div class="stat" id="stat-box" hidden>
+        <span class="meta-label">累计更新</span>
+        <strong id="stat-count">0</strong>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="download" id="download" hidden>
+  <div class="wrap download-inner">
+    <div class="download-text">
+      <h2 id="download-title">下载最新版本</h2>
+      <p id="download-note"></p>
+    </div>
+    <div class="download-actions" id="download-actions"></div>
+  </div>
+</section>
+
+<div class="toolbar" id="toolbar" hidden>
+  <div class="wrap toolbar-inner">
+    <div class="filters" id="type-filters" role="group" aria-label="按类型筛选"></div>
+    <div class="search">
+      <input id="search" type="search" placeholder="搜索版本号、标题或改动内容…" autocomplete="off" aria-label="搜索">
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div id="status" class="status" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>正在加载更新数据…</p>
+  </div>
+  <section id="timeline" class="timeline" aria-label="更新列表"></section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span id="footer-note">数据源：data/updates.json</span>
+  </div>
+</footer>
+
+<noscript>
+  <div class="wrap"><p class="status">本站需要启用 JavaScript 才能解析并展示更新数据。</p></div>
+</noscript>
+
+<script src="./assets/app.js" defer></script>
+</body>
+</html>

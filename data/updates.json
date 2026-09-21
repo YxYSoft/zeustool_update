@@ -1,0 +1,78 @@
+{
+  "site": {
+    "title": "挂机工具更新日志",
+    "subtitle": "记录每一次版本改动"
+  },
+  "types": {
+    "feat":     { "label": "新功能", "color": "green" },
+    "fix":      { "label": "修复",   "color": "red" },
+    "improve":  { "label": "优化",   "color": "blue" },
+    "perf":     { "label": "性能",   "color": "amber" },
+    "refactor": { "label": "重构",   "color": "purple" },
+    "docs":     { "label": "文档",   "color": "gray" }
+  },
+  "download": {
+    "title": "下载最新版本",
+    "direct": {
+      "label": "直连下载",
+      "url": "https://example.com/download/bot-1.4.0.zip"
+    },
+    "pan": {
+      "label": "网盘下载",
+      "url": "https://pan.baidu.com/s/1xxxxxxxxxx",
+      "code": "8888"
+    }
+  },
+  "releases": [
+    {
+      "version": "1.4.0",
+      "date": "2026-09-21",
+      "title": "Zone T 次优目标与图模式中途改目标",
+      "tags": ["C++", "跨端契约", "寻路"],
+      "summary": "新增次优目标机制，并在图模式下支持中途切换目标而不丢失已走的路径段。",
+      "changes": [
+        { "type": "feat", "text": "新增次优目标（Zone T）：最优目标不可达时自动回退到备选点。" },
+        { "type": "feat", "text": "图模式中途改目标时保留未走完的路径段，不再整条重算。" },
+        { "type": "improve", "text": "TargetInfo 由 80 字节扩展到 112 字节，`MiniTool` 与宿主两端已同步。" },
+        { "type": "fix", "text": "修复 Zone D 鼠标指令被默认值覆盖、导致按键丢失的问题。" }
+      ]
+    },
+    {
+      "version": "1.3.2",
+      "date": "2026-09-18",
+      "title": "脱困机制与卡死保护",
+      "tags": ["Lua", "寻路"],
+      "summary": "完善卡死后的自动脱困流程，路线模式与图模式通用。",
+      "changes": [
+        { "type": "feat", "text": "新增 `mi_setStuckParams` 六参数脱困配置接口。" },
+        { "type": "feat", "text": "三段式脱困：双跳 → 左右平移 → 后退，默认参数 5 / 3 / 0.5 / 1.0 / 3.0 / 50。" },
+        { "type": "fix", "text": "彻底卡死时暂停寻路并面朝目标点，避免持续撞墙。" }
+      ]
+    },
+    {
+      "version": "1.3.0",
+      "date": "2026-09-12",
+      "title": "房间时间检测",
+      "tags": ["C#", "稳定性"],
+      "summary": "新增对局剩余时间检测，并在共享内存侧做了一轮健壮性加固。",
+      "changes": [
+        { "type": "feat", "text": "读取对局剩余时间，低于 10 秒自动退出进程。" },
+        { "type": "improve", "text": "共享内存创建时整体清零，避免残留脏数据被误读。" },
+        { "type": "fix", "text": "关闭时补上句柄回收，消除长期运行的句柄泄漏。" }
+      ]
+    },
+    {
+      "version": "1.2.0",
+      "date": "2026-09-05",
+      "title": "Boss 键序与路径录制工具",
+      "tags": ["C++", "Lua", "工具链"],
+      "summary": "加入 Boss 专用键序宏，并提供录制点位转 Lua 路点的转换工具。",
+      "changes": [
+        { "type": "feat", "text": "新增 `BossKeySeq` 宏，判定条件为 `BotQuality > 2`。" },
+        { "type": "feat", "text": "`PathToLua` 工具：把录制的 JSON 点位直接转成 Lua 路点代码。" },
+        { "type": "perf", "text": "键序下发统一走模拟输入，减少无效调用。" },
+        { "type": "docs", "text": "补充导航图中 `zones` / `bossNode` / `exitNode` 字段说明。" }
+      ]
+    }
+  ]
+}
