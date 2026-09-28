@@ -13,17 +13,28 @@
   },
   "download": {
     "title": "下载最新版本",
-    "note": "3.0.46(20260917)",
+    "note": "3.0.47(20260918)",
     "direct": {
       "label": "直连下载",
-      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.46.exe"
+      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.47.exe"
     },
     "pan": {
       "label": "网盘下载",
-      "url": "https://yxysoft.lanzouu.com/ireGo49btwja"
+      "url": "https://yxysoft.lanzouu.com/ibCDZ4a8735i"
     }
   },
   "releases": [
+    {
+      "version": "0.47",
+      "date": "2026-09-18",
+      "title": "后台运行与就绪检测优化",
+      "tags": ["优化"],
+      "changes": [
+        { "type": "improve", "text": "优化后台运行功能" },
+        { "type": "improve", "text": "优化就绪检测功能" },
+        { "type": "improve", "text": "优化部分其他细节" }
+      ]
+    },
     {
       "version": "0.46",
       "date": "2026-09-17",
