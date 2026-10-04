@@ -13,17 +13,26 @@
   },
   "download": {
     "title": "下载最新版本",
-    "note": "3.0.47(20261002)",
+    "note": "3.0.48(20261003)",
     "direct": {
       "label": "直连下载",
-      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.47B.exe"
+      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.48.exe"
     },
     "pan": {
       "label": "网盘下载",
-      "url": "https://yxysoft.lanzouu.com/iTCSS4an33ih"
+      "url": "https://yxysoft.lanzouu.com/i1eR24atyoeb"
     }
   },
   "releases": [
+    {
+      "version": "0.48",
+      "date": "2026-10-03",
+      "title": "紧急修复就绪检测异常",
+      "tags": ["修复"],
+      "changes": [
+        { "type": "fix", "text": "紧急修复 0.47 版本的就绪检测异常" }
+      ]
+    },
     {
       "version": "0.47",
       "date": "2026-09-18",
