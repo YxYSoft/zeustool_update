@@ -13,17 +13,26 @@
   },
   "download": {
     "title": "下载最新版本",
-    "note": "3.0.48(20261003)",
+    "note": "3.0.49(20261007)",
     "direct": {
       "label": "直连下载",
-      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.48.exe"
+      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.49.exe"
     },
     "pan": {
       "label": "网盘下载",
-      "url": "https://yxysoft.lanzouu.com/i1eR24atyoeb"
+      "url": "https://yxysoft.lanzouu.com/iLZox4b4vahi"
     }
   },
   "releases": [
+    {
+      "version": "0.49",
+      "date": "2026-10-07",
+      "title": "龙岭迷窟奖励检测",
+      "tags": ["检测", "脚本"],
+      "changes": [
+        { "type": "feat", "text": "支持龙岭迷窟奖励检测，当前支持命运眷顾、传说。未出货直接重开不结算（需下载特定脚本方可）" }
+      ]
+    },
     {
       "version": "0.48",
       "date": "2026-10-03",
