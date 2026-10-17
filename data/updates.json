@@ -13,17 +13,30 @@
   },
   "download": {
     "title": "下载最新版本",
-    "note": "3.0.49(20261007)",
+    "note": "3.0.50(20261017)",
     "direct": {
       "label": "直连下载",
-      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.49.exe"
+      "url": "https://pub-01ee4bfeec714056a29bd3d96e5d2500.r2.dev/0.50.exe"
     },
     "pan": {
       "label": "网盘下载",
-      "url": "https://yxysoft.lanzouu.com/iLZox4b4vahi"
+      "url": "https://yxysoft.lanzouu.com/if2ym4cb5hoj"
     }
   },
   "releases": [
+    {
+      "version": "0.50",
+      "date": "2026-10-17",
+      "title": "星际翻倍卡与接口扩展",
+      "tags": ["翻倍卡", "接口", "优化"],
+      "changes": [
+        { "type": "improve", "text": "优化房间时间检测与断线重连检测" },
+        { "type": "feat", "text": "简单支持奖励自定义（需要自行改代码）" },
+        { "type": "feat", "text": "支持自动使用星际翻倍卡（无需手动开启翻倍卡，自行确认超时等细节问题）" },
+        { "type": "improve", "text": "优化加成管理器生效策略" },
+        { "type": "feat", "text": "新增、优化部分接口与功能（V1 语法多开小号切换操作、加成冷却、裂隙奖励查询）" }
+      ]
+    },
     {
       "version": "0.49",
       "date": "2026-10-07",
