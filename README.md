@@ -165,39 +165,38 @@ python -m http.server 8000
 
 ## 部署
 
-### nginx
+### nginx（私有部署，推荐）
 
-把整个目录丢到站点根目录即可：
+整站是纯静态的，没有任何外部依赖：不引 CDN 字体、不发接口请求，`fetch` 只读同目录下的 `data/*.json`。所以放到任何一台机器上用 nginx 指一下就能跑，局域网 / 内网都行，不联网也快。
 
-```nginx
-server {
-    listen 80;
-    server_name your.domain.com;
+现成配置：[`deploy/nginx.conf`](deploy/nginx.conf)。
 
-    root /var/www/changelog;
-    index index.html;
+**要复制的只有 4 项**：`index.html`、`api.html`、`assets/`、`data/`。不要把整个仓库丢进去 —— `.git/`、`README.md` 会被一起暴露（配置里已经 deny 了隐藏目录，但 README 是普通文件，挡不住）。
 
-    location / {
-        try_files $uri $uri/ =404;
-    }
+Windows 步骤：
 
-    # 关键：JSON 不要长缓存，否则 push 完页面还是旧的
-    location = /data/updates.json {
-        add_header Cache-Control "no-cache, must-revalidate";
-        try_files $uri =404;
-    }
+```bat
+:: 1. 站点文件放到 D:\web\hangup
+robocopy "D:\path\to\zeustool_update" "D:\web\hangup" index.html api.html assets data /E /PURGE
 
-    # 静态资源可以长缓存（改了记得带版本号或用文件名区分）
-    location ~* \.(css|js)$ {
-        expires 7d;
-        add_header Cache-Control "public";
-    }
-}
+:: 2. nginx 解压到 C:\nginx，把 deploy\nginx.conf 的内容并进 conf\nginx.conf 的 http { } 里
+::    或单独存成 conf\conf.d\site.conf，并在 http { } 里加 include conf.d/*.conf;
+
+:: 3. 改配置里的 root 为 D:/web/hangup（正斜杠）
+
+C:\nginx\nginx.exe -t
+C:\nginx\nginx.exe
 ```
 
-```bash
-nginx -t && nginx -s reload
-```
+之后访问 `http://localhost:8080/`，局域网里用 `http://本机IP:8080/`（首次要放行防火墙）。
+
+Linux 一样，只是 `root /var/www/hangup;`、`nginx -t && systemctl reload nginx`。
+
+几个坑：
+
+- **不要双击 `index.html` 打开**。`file://` 下浏览器会拦掉读取 JSON，页面只会显示加载失败。必须走 http。
+- 配置文件存成 **UTF-8 无 BOM**。带 BOM 会报 `unknown directive ""`。
+- `root` 里不要留 `.git`。配置里已经 `deny all` 隐藏目录，但把仓库直接指过来仍有风险。
 
 ### GitHub Pages
 
