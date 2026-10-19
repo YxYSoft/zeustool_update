@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API 参考 · 挂机工具</title>
+<meta name="description" content="挂机工具 Lua 接口参考：clua.cpp 注册的全部 mi_* 与键鼠模拟函数。">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+
+<header class="site-header api-header">
+  <div class="wrap">
+    <div class="brand">
+      <h1>API 参考</h1>
+      <p class="subtitle">clua.cpp 注入的 Lua 接口 · 共 <strong id="api-total">—</strong> 个</p>
+    </div>
+    <nav class="site-nav" aria-label="站点导航">
+      <a href="./index.html">更新日志</a>
+      <a href="./api.html" class="is-active" aria-current="page">API 文档</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap api-layout">
+
+  <aside class="api-side">
+    <div class="search api-search">
+      <input id="api-search" type="search" placeholder="搜索接口名或说明…" autocomplete="off" aria-label="搜索接口">
+    </div>
+    <nav id="api-cats" class="api-cats" aria-label="接口分类"></nav>
+    <p class="api-stat" id="api-stat"></p>
+  </aside>
+
+  <div class="api-main">
+    <section id="api-notes" class="api-notes" aria-label="已知问题"></section>
+    <div id="api-status" class="status" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>正在加载接口数据…</p>
+    </div>
+    <section id="api-list" class="api-list" aria-label="接口列表"></section>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>数据源：data/api.json · 内容由 clua.cpp 实际注册表逐条核对</span>
+  </div>
+</footer>
+
+<noscript>
+  <div class="wrap"><p class="status">本页需要启用 JavaScript 才能解析并展示接口数据。</p></div>
+</noscript>
+
+<script src="./assets/api.js" defer></script>
+</body>
+</html>

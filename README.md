@@ -8,12 +8,15 @@
 
 ```
 .
-├── index.html          # 页面骨架，负责挂载
+├── index.html          # 更新日志页
+├── api.html            # API 参考页
 ├── assets/
-│   ├── style.css       # 样式（时间线风格，跟随系统明暗主题）
-│   └── app.js          # 拉取 JSON → 排序 → 筛选 → 渲染
+│   ├── style.css       # 两页共用的样式（跟随系统明暗主题）
+│   ├── app.js          # 更新日志：拉取 JSON → 排序 → 筛选 → 渲染
+│   └── api.js          # API 参考：拉取 JSON → 分类 → 搜索 → 渲染
 ├── data/
-│   └── updates.json    # ★ 唯一需要维护的数据文件
+│   ├── updates.json    # ★ 更新日志的数据
+│   └── api.json        # ★ API 参考的数据
 └── README.md
 ```
 
@@ -73,6 +76,52 @@
 ### 文本里放代码
 
 用反引号包裹，例如 `` `mi_setStuckParams` ``，会渲染成等宽高亮样式。
+
+## API 参考页
+
+`api.html` 是独立的第二页，顶部导航可以互相跳转。数据全部来自 `data/api.json`，当前收录 **131 个**接口，按 15 个分类组织。
+
+### 新增或修改一个接口
+
+往 `funcs` 数组里加一个对象：
+
+```json
+{
+  "name": "mi_setStuckParams",
+  "cat": "stuck",
+  "sig": "mi_setStuckParams(maxJump, stuckTimeSec, progressDist, pendingTimeout)",
+  "brief": "设置卡死判定与脱困参数。",
+  "params": [
+    { "n": "maxJump", "t": "int", "d": "二段跳次数，传 0 = 不修改" }
+  ],
+  "returns": "无",
+  "note": "只有 4 个参数。",
+  "trap": true
+}
+```
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `name` | 是 | 接口名，同时作为锚点（`api.html#mi_setStuckParams`） |
+| `cat` | 是 | 分类 id，必须在顶层 `categories` 里存在 |
+| `sig` | 是 | 显示用的完整签名，也是「复制签名」按钮复制的内容 |
+| `brief` | 是 | 一句话说明 |
+| `params` | 否 | `{ n, t, d }` 数组，分别是参数名、类型、说明；没有参数就空数组或删掉 |
+| `returns` | 否 | 返回值说明，写 `"无"` 时整行不渲染 |
+| `note` | 否 | 补充说明，显示在卡片底部 |
+| `trap` | 否 | `true` 时卡片出现「注意」徽章，说明块变成警示配色 |
+
+顶层 `notes` 是页面最上方的全局提示区，`level` 可填 `danger` / `warn` / `info`。
+
+**页面的分类计数、搜索结果、锚点都是自动算的**，加接口只需要改 JSON。
+
+### 页面能力
+
+- 左侧分类导航，滚动时自动高亮当前分类
+- 顶部搜索框，匹配接口名、说明、返回值和参数描述（按 `/` 聚焦，`Esc` 清空）
+- 每个接口有独立锚点，可直接分享 `api.html#mi_getTarget`
+- 「复制签名」一键复制完整调用形式
+- 移动端分类栏折成横滑胶囊
 
 ## 下载按钮
 

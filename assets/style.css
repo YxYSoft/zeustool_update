@@ -561,3 +561,455 @@ body {
   .toolbar-inner { flex-direction: column; align-items: stretch; }
   .date { margin-left: 0; }
 }
+
+/* ---------- 站点导航 ---------- */
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.site-nav a {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: color .15s, background .15s, border-color .15s;
+}
+
+.site-nav a:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.site-nav a.is-active {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border);
+  font-weight: 600;
+}
+
+/* ---------- API 文档：布局 ---------- */
+
+.api-header .wrap { align-items: center; }
+
+.api-layout {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+  padding-bottom: 60px;
+}
+
+.api-side {
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.api-search { margin-bottom: 14px; }
+.api-search input { width: 100%; }
+
+.api-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.api-cat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--text-2);
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: background .12s, color .12s;
+}
+
+.api-cat:hover { background: var(--surface); color: var(--text); }
+
+.api-cat.is-active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.api-cat-num {
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.api-cat.is-active .api-cat-num { color: var(--accent); }
+
+.api-stat {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.api-main { min-width: 0; }
+
+/* ---------- API 文档：全局提示 ---------- */
+
+.api-notes { margin-bottom: 26px; }
+
+.note-box {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.note-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.note-summary::-webkit-details-marker { display: none; }
+.note-summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--text-3);
+  border-bottom: 1.5px solid var(--text-3);
+  transform: rotate(-45deg);
+  transition: transform .18s;
+  margin-left: 2px;
+}
+
+.note-box[open] .note-summary::before { transform: rotate(45deg); }
+
+.note-count {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.note-list {
+  margin: 0;
+  padding: 0 16px 14px;
+  list-style: none;
+}
+
+.note-item {
+  padding: 9px 0 9px 12px;
+  border-top: 1px solid var(--border);
+  border-left: 2px solid var(--border-strong);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.note-item-title { display: block; color: var(--text); font-weight: 600; }
+
+.note-item-text { color: var(--text-2); }
+
+.note-danger { border-left-color: var(--c-red-fg); }
+.note-warn   { border-left-color: var(--c-amber-fg); }
+.note-info   { border-left-color: var(--accent); }
+
+/* ---------- API 文档：分组 ---------- */
+
+.api-group { margin-bottom: 40px; scroll-margin-top: 16px; }
+
+.api-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.api-group-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.api-group-num {
+  color: var(--text-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.api-group-desc {
+  margin: 0 0 14px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+/* ---------- API 文档：接口卡片 ---------- */
+
+.api-fn {
+  padding: 15px 18px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  scroll-margin-top: 16px;
+  transition: border-color .18s, box-shadow .18s;
+}
+
+.api-fn:hover { border-color: var(--border-strong); }
+
+.api-fn.is-target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--c-blue-bg);
+}
+
+.api-fn[hidden] { display: none; }
+
+.api-fn-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.api-fn-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.api-name {
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.api-badge {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--c-amber-bg);
+  color: var(--c-amber-fg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.api-copy {
+  margin-left: auto;
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+
+.api-copy:hover { color: var(--text); border-color: var(--border-strong); }
+.api-copy.is-done { color: var(--c-green-fg); border-color: var(--c-green-fg); }
+
+.api-brief {
+  margin: 8px 0 0;
+  color: var(--text-2);
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+
+.api-sig {
+  margin: 11px 0 0;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  overflow-x: auto;
+}
+
+.api-sig code {
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: 12.5px;
+  color: var(--text);
+  white-space: pre;
+}
+
+/* 参数表 */
+
+.api-params {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 7px 16px;
+  margin: 12px 0 0;
+}
+
+.api-params dt {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.api-params dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.api-type {
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--accent);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  line-height: 17px;
+}
+
+/* 返回与说明 */
+
+.api-ret {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.api-ret code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.api-label {
+  flex: none;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.api-note {
+  margin: 10px 0 0;
+  padding: 8px 11px;
+  border-left: 2px solid var(--border-strong);
+  background: var(--surface-2);
+  border-radius: 0 6px 6px 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+.api-note .api-label { margin-right: 8px; }
+
+.api-note.is-warn {
+  border-left-color: var(--c-amber-fg);
+  background: var(--c-amber-bg);
+  color: var(--c-amber-fg);
+}
+
+.api-note.is-warn .api-label { color: inherit; font-weight: 600; }
+
+/* ---------- API 文档：移动端 ---------- */
+
+@media (max-width: 860px) {
+  .api-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .api-side {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .api-cats {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .api-cats::-webkit-scrollbar { display: none; }
+
+  .api-cat {
+    flex: none;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .api-stat { margin-top: 10px; padding-top: 10px; }
+}
+
+.brand-nav { margin-top: 12px; }
+
+@media (max-width: 860px) {
+  .brand-nav { margin-top: 10px; }
+}
+
+.api-list { min-width: 0; }
+
+.api-cat-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.api-pdesc { flex: 1 1 200px; min-width: 0; }
+
+/* ---------- API 文档：溢出防护 ---------- */
+
+.api-side,
+.api-cats,
+.api-cat,
+.api-main {
+  min-width: 0;
+}
+
+.api-cats { max-width: 100%; }
+
+.api-params dd,
+.api-note,
+.api-brief,
+.note-item-text {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .api-header .wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .api-header .site-nav { align-self: stretch; }
+}

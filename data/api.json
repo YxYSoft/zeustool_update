@@ -1,0 +1,1948 @@
+{
+  "site": {
+    "title": "API 参考",
+    "subtitle": "clua.cpp 注入的 Lua 接口，共 131 个",
+    "version": "3.0.50",
+    "updated": "2026-10-19"
+  },
+  "categories": [
+    {
+      "id": "lifecycle",
+      "label": "生命周期",
+      "desc": "注入、启动与关闭"
+    },
+    {
+      "id": "path",
+      "label": "路线寻路",
+      "desc": "录制点位的回放"
+    },
+    {
+      "id": "graph",
+      "label": "图模式",
+      "desc": "navgraph.json 节点寻路"
+    },
+    {
+      "id": "combat",
+      "label": "战斗",
+      "desc": "开火、瞄准、清场判定"
+    },
+    {
+      "id": "state",
+      "label": "状态查询",
+      "desc": "自身位置与存活"
+    },
+    {
+      "id": "keyseq",
+      "label": "循环键序",
+      "desc": "普通加成键序"
+    },
+    {
+      "id": "bosskey",
+      "label": "Boss 键序",
+      "desc": "Boss 专属键序"
+    },
+    {
+      "id": "target",
+      "label": "目标与掉落",
+      "desc": "最优/次优目标、掉落统计"
+    },
+    {
+      "id": "loot",
+      "label": "拾取",
+      "desc": "掉落物快照"
+    },
+    {
+      "id": "stuck",
+      "label": "脱困",
+      "desc": "卡死检测与自救"
+    },
+    {
+      "id": "detect",
+      "label": "检测开关",
+      "desc": "封印、弹药、房间时间、断线"
+    },
+    {
+      "id": "rawinput",
+      "label": "底层输入",
+      "desc": "按键/鼠标/滚轮原语"
+    },
+    {
+      "id": "input",
+      "label": "键鼠模拟",
+      "desc": "短名与长名别名"
+    },
+    {
+      "id": "image",
+      "label": "图像取色",
+      "desc": "找图与取色"
+    },
+    {
+      "id": "task",
+      "label": "任务控制",
+      "desc": "脚本、失败、结束"
+    }
+  ],
+  "notes": [
+    {
+      "level": "danger",
+      "title": "mi_shutdown 会终止代码执行",
+      "text": "理论上不应该被调用。调用后脚本直接中断，不是“先执行完再清理”。"
+    },
+    {
+      "level": "warn",
+      "title": "mmh / mmv 的方向是反的",
+      "text": "名字里带 H 的（mmh、mouseMoveH）实际做垂直移动；带 V 的（mmv、mouseMoveV）实际做水平移动。照名字猜必错。"
+    },
+    {
+      "level": "warn",
+      "title": "两个退出检测默认关闭，且不传参等于开启",
+      "text": "mi_setRoomTimeExit / mi_setDisconnectExit 运行时默认关闭。但 Lua 包装层的默认值是 1，所以不带参数调用 = 开启。要关就明确写 0。"
+    },
+    {
+      "level": "warn",
+      "title": "mi_target* 依赖 mi_getTarget 的缓存",
+      "text": "mi_targetType / Count / Begin / Dist 读的都是上一次 mi_getTarget 或 mi_getSecondTarget 缓存下来的结果。顺序错了会拿到旧数据。"
+    },
+    {
+      "level": "warn",
+      "title": "kp 的末位数字可能被当成延时",
+      "text": "最后一个数字 ≥10 就不当作按键，而是当作按住毫秒数。kp(65) 是延时 65ms，不是按 A。"
+    },
+    {
+      "level": "warn",
+      "title": "mi_lootCount 没就绪返回 -1，且没有超时",
+      "text": "要先 mi_lootRequest 发起请求，再轮询 mi_lootCount。没有超时机制，必须自己在循环里加上限。"
+    },
+    {
+      "level": "warn",
+      "title": "mi_loadGraph 返回值个数不固定",
+      "text": "成功只返回 1 个值，失败返回 2 个。用 local ok, err = mi_loadGraph() 接是安全的，但不要假设失败时也有 err。"
+    },
+    {
+      "level": "info",
+      "title": "mi_unload 未注册",
+      "text": "源码里定义了 l_mi_unload，但没有进注册表，Lua 里调用会得到 nil。不要用。"
+    }
+  ],
+  "funcs": [
+    {
+      "name": "mi_start",
+      "cat": "lifecycle",
+      "sig": "mi_start()",
+      "brief": "初始化注入环境并按默认值重置各项开关，必要时注入 MiniTool.dll。",
+      "params": [],
+      "returns": "true；失败返回 false, \"fal N\"",
+      "note": "每次都重置：脱困关、图模式关、房间/断线检测关，并写入一套默认键序（2 e 3 e 5 e 2 1，各 200ms）。 fal 1=TryInit 失败；fal 2=未加载 MiniToolDll 数据；fal 3=注入失败；fal 4=解密失败。",
+      "trap": false
+    },
+    {
+      "name": "mi_shutdown",
+      "cat": "lifecycle",
+      "sig": "mi_shutdown()",
+      "brief": "关闭注入库（MiniInject_Shutdown）。",
+      "params": [],
+      "returns": "无",
+      "note": "会终止后续代码执行，理论上不应被调用。",
+      "trap": true
+    },
+    {
+      "name": "mi_run",
+      "cat": "lifecycle",
+      "sig": "mi_run(path)",
+      "brief": "按 keySeq.json 中当前加成的配置初始化键序，然后执行指定 Lua 文件。",
+      "params": [
+        {
+          "n": "path",
+          "t": "string",
+          "d": "要执行的 Lua 脚本路径，相对 exe 目录"
+        }
+      ],
+      "returns": "true；失败返回 false, errmsg",
+      "note": "先读加成名 → 在 keySeq.json 的 jiacheng[名称] 里套用 first/loop/boss 键序与各项开关，再 luaL_dofile 执行脚本。找不到加成项则跳过配置直接执行文件；脚本报错会把文件名和错误一起返回。",
+      "trap": false
+    },
+    {
+      "name": "mi_addPoint",
+      "cat": "path",
+      "sig": "mi_addPoint(x, y, z, type)",
+      "brief": "向路点列表追加一个点。",
+      "params": [
+        {
+          "n": "x",
+          "t": "number",
+          "d": "世界坐标 X"
+        },
+        {
+          "n": "y",
+          "t": "number",
+          "d": "世界坐标 Y"
+        },
+        {
+          "n": "z",
+          "t": "number",
+          "d": "世界坐标 Z"
+        },
+        {
+          "n": "type",
+          "t": "int",
+          "d": "路点类型，原样透传给寻路逻辑"
+        }
+      ],
+      "returns": "无",
+      "note": "type 的枚举值在注入端没有定义，含义以录制端为准（录制侧有普通/跳跃/停顿/下蹲/门/终点六种，但没有证据说明数值对应关系）。",
+      "trap": false
+    },
+    {
+      "name": "mi_clearPath",
+      "cat": "path",
+      "sig": "mi_clearPath()",
+      "brief": "清空路点列表。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_startPath",
+      "cat": "path",
+      "sig": "mi_startPath(snap)",
+      "brief": "开始沿当前路点列表移动。",
+      "params": [
+        {
+          "n": "snap",
+          "t": "bool",
+          "d": "true=先吸附到最近的路点再开始，默认 false"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_stopPath",
+      "cat": "path",
+      "sig": "mi_stopPath()",
+      "brief": "停止沿路点移动。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_goto",
+      "cat": "path",
+      "sig": "mi_goto(x, y, z)",
+      "brief": "直接朝一个世界坐标走过去，不依赖路点列表。",
+      "params": [
+        {
+          "n": "x",
+          "t": "number",
+          "d": "目标 X"
+        },
+        {
+          "n": "y",
+          "t": "number",
+          "d": "目标 Y"
+        },
+        {
+          "n": "z",
+          "t": "number",
+          "d": "目标 Z"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_isRunning",
+      "cat": "path",
+      "sig": "mi_isRunning()",
+      "brief": "路点寻路是否正在进行。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_getPathIdx",
+      "cat": "path",
+      "sig": "mi_getPathIdx()",
+      "brief": "当前正走向的路点索引。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setGraphMode",
+      "cat": "graph",
+      "sig": "mi_setGraphMode(enable)",
+      "brief": "切换图模式（默认路线模式）。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "true=图模式，false=路线模式，默认 false"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_isGraphMode",
+      "cat": "graph",
+      "sig": "mi_isGraphMode()",
+      "brief": "当前是否处于图模式。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_loadGraph",
+      "cat": "graph",
+      "sig": "mi_loadGraph(path)",
+      "brief": "从文件加载 navgraph.json。",
+      "params": [
+        {
+          "n": "path",
+          "t": "string",
+          "d": "路径，默认 navgraph.json"
+        }
+      ],
+      "returns": "true；失败返回 false, errmsg",
+      "note": "返回值个数不固定：成功只返回 1 个值，失败返回 2 个。不要用第二个变量硬接。",
+      "trap": true
+    },
+    {
+      "name": "mi_loadGraphStr",
+      "cat": "graph",
+      "sig": "mi_loadGraphStr(b64)",
+      "brief": "从内存字符串加载图（base64 编码）。",
+      "params": [
+        {
+          "n": "b64",
+          "t": "string",
+          "d": "base64 后的 JSON 文本"
+        }
+      ],
+      "returns": "true；失败返回 false, \"failed1\"/\"failed2\"",
+      "note": "内部先 base64 解码，再用固定密钥 MiniInject2026 做 XOR，最后交给 C++ 解析。",
+      "trap": false
+    },
+    {
+      "name": "mi_graphLoaded",
+      "cat": "graph",
+      "sig": "mi_graphLoaded()",
+      "brief": "图是否已加载。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setGraphGoal",
+      "cat": "graph",
+      "sig": "mi_setGraphGoal(x, y, z)",
+      "brief": "按世界坐标设置图导航目标。",
+      "params": [
+        {
+          "n": "x",
+          "t": "number",
+          "d": "目标 X"
+        },
+        {
+          "n": "y",
+          "t": "number",
+          "d": "目标 Y"
+        },
+        {
+          "n": "z",
+          "t": "number",
+          "d": "目标 Z"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setGraphGoalNode",
+      "cat": "graph",
+      "sig": "mi_setGraphGoalNode(id)",
+      "brief": "按节点 id 设置图导航目标。",
+      "params": [
+        {
+          "n": "id",
+          "t": "int",
+          "d": "节点 id，默认 -1"
+        }
+      ],
+      "returns": "boolean（节点是否存在并已设为目标）",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_stopGraphGoal",
+      "cat": "graph",
+      "sig": "mi_stopGraphGoal()",
+      "brief": "停止图导航。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_graphIsArrived",
+      "cat": "graph",
+      "sig": "mi_graphIsArrived()",
+      "brief": "是否已到达目标。",
+      "params": [],
+      "returns": "boolean",
+      "note": "边沿触发，需要轮询查询，不能只查一次。",
+      "trap": false
+    },
+    {
+      "name": "mi_graphNodeCount",
+      "cat": "graph",
+      "sig": "mi_graphNodeCount()",
+      "brief": "图的节点总数。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_graphRouteNodeCount",
+      "cat": "graph",
+      "sig": "mi_graphRouteNodeCount()",
+      "brief": "当前规划出的路线长度。",
+      "params": [],
+      "returns": "integer",
+      "note": "主要用于调试。",
+      "trap": false
+    },
+    {
+      "name": "mi_getBossNode",
+      "cat": "graph",
+      "sig": "mi_getBossNode()",
+      "brief": "navgraph.json 顶层 bossNode 的节点 id。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_getExitNode",
+      "cat": "graph",
+      "sig": "mi_getExitNode()",
+      "brief": "navgraph.json 顶层 exitNode 的节点 id。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_hasExit",
+      "cat": "graph",
+      "sig": "mi_hasExit()",
+      "brief": "场上是否存在退出点。",
+      "params": [],
+      "returns": "boolean, x, y, z",
+      "note": "返回 4 个值，后三个是最近退出点的坐标。",
+      "trap": false
+    },
+    {
+      "name": "mi_getMoveObjectCount",
+      "cat": "graph",
+      "sig": "mi_getMoveObjectCount()",
+      "brief": "可作为目标的 moveObject 数量。",
+      "params": [],
+      "returns": "integer",
+      "note": "不含盗宝鼠，退出点也不计入。",
+      "trap": false
+    },
+    {
+      "name": "mi_startFire",
+      "cat": "combat",
+      "sig": "mi_startFire()",
+      "brief": "开始开火（与 mi_stopFire 成对控制开火状态）。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_stopFire",
+      "cat": "combat",
+      "sig": "mi_stopFire()",
+      "brief": "停止开火。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setAutoFire",
+      "cat": "combat",
+      "sig": "mi_setAutoFire(enable)",
+      "brief": "自动开火。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setHoldPos",
+      "cat": "combat",
+      "sig": "mi_setHoldPos(enable)",
+      "brief": "开火时保持原地，不追人。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 false"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_showAim",
+      "cat": "combat",
+      "sig": "mi_showAim(enable)",
+      "brief": "显示瞄准准星。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setCombatEnabled",
+      "cat": "combat",
+      "sig": "mi_setCombatEnabled(enable)",
+      "brief": "战斗总开关。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_hasEnemy",
+      "cat": "combat",
+      "sig": "mi_hasEnemy()",
+      "brief": "视野内是否有敌人。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_enemyCount",
+      "cat": "combat",
+      "sig": "mi_enemyCount()",
+      "brief": "敌人数量。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_nearestDist",
+      "cat": "combat",
+      "sig": "mi_nearestDist()",
+      "brief": "最近敌人的距离。",
+      "params": [],
+      "returns": "number",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setEnemyDist",
+      "cat": "combat",
+      "sig": "mi_setEnemyDist(dist)",
+      "brief": "敌人距离阈值，超出即不算锁定目标。",
+      "params": [
+        {
+          "n": "dist",
+          "t": "number",
+          "d": "默认 18000.0（引擎单位）"
+        }
+      ],
+      "returns": "无",
+      "note": "单位是引擎坐标，不是米。",
+      "trap": false
+    },
+    {
+      "name": "mi_setEnemyClearWait",
+      "cat": "combat",
+      "sig": "mi_setEnemyClearWait(sec)",
+      "brief": "判定“清场”需要连续无敌人的秒数。",
+      "params": [
+        {
+          "n": "sec",
+          "t": "number",
+          "d": "秒，默认 3.0"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_attackTo",
+      "cat": "combat",
+      "sig": "mi_attackTo(x, y, z)",
+      "brief": "转向指定坐标并开火。",
+      "params": [
+        {
+          "n": "x",
+          "t": "number",
+          "d": "目标 X"
+        },
+        {
+          "n": "y",
+          "t": "number",
+          "d": "目标 Y"
+        },
+        {
+          "n": "z",
+          "t": "number",
+          "d": "目标 Z"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_stopAttack",
+      "cat": "combat",
+      "sig": "mi_stopAttack()",
+      "brief": "停止攻击动作。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setAutoAttack",
+      "cat": "combat",
+      "sig": "mi_setAutoAttack(enable)",
+      "brief": "自动攻击。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_isEnemyClear",
+      "cat": "combat",
+      "sig": "mi_isEnemyClear(seconds)",
+      "brief": "是否已连续 N 秒没有敌人。",
+      "params": [
+        {
+          "n": "seconds",
+          "t": "int",
+          "d": "连续秒数，默认 0"
+        }
+      ],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_hasBoss",
+      "cat": "combat",
+      "sig": "mi_hasBoss()",
+      "brief": "场上是否有 Boss。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_getPos",
+      "cat": "state",
+      "sig": "mi_getPos()",
+      "brief": "自身世界坐标。",
+      "params": [],
+      "returns": "x, y, z",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_isDead",
+      "cat": "state",
+      "sig": "mi_isDead()",
+      "brief": "自己是否已死亡。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_playerCount",
+      "cat": "state",
+      "sig": "mi_playerCount()",
+      "brief": "场上玩家数量。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_keySeqAdd",
+      "cat": "keyseq",
+      "sig": "mi_keySeqAdd(vk, holdMs)",
+      "brief": "向普通键序追加一个按键。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int",
+          "d": "虚拟键码或字符码"
+        },
+        {
+          "n": "holdMs",
+          "t": "int",
+          "d": "按住毫秒，默认 100"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_keySeqMouse",
+      "cat": "keyseq",
+      "sig": "mi_keySeqMouse(btn, holdMs)",
+      "brief": "向普通键序追加一次鼠标点击。",
+      "params": [
+        {
+          "n": "btn",
+          "t": "int",
+          "d": "0=左 1=右 2=中 4=滚轮"
+        },
+        {
+          "n": "holdMs",
+          "t": "int",
+          "d": "按住毫秒，默认 80"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_keySeqClear",
+      "cat": "keyseq",
+      "sig": "mi_keySeqClear()",
+      "brief": "清空普通键序。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_keySeqCount",
+      "cat": "keyseq",
+      "sig": "mi_keySeqCount()",
+      "brief": "普通键序的条目数。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_keySeqCooldown",
+      "cat": "keyseq",
+      "sig": "mi_keySeqCooldown(ms)",
+      "brief": "设置普通键序的循环冷却。",
+      "params": [
+        {
+          "n": "ms",
+          "t": "int",
+          "d": "毫秒，默认 30000"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_forceKeySeq",
+      "cat": "keyseq",
+      "sig": "mi_forceKeySeq()",
+      "brief": "无视冷却，立刻触发一次普通键序。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_keySeqReady",
+      "cat": "keyseq",
+      "sig": "mi_keySeqReady()",
+      "brief": "冷却是否已完成。",
+      "params": [],
+      "returns": "boolean",
+      "note": "true = 可以立即触发。",
+      "trap": false
+    },
+    {
+      "name": "mi_bossKeySeqAdd",
+      "cat": "bosskey",
+      "sig": "mi_bossKeySeqAdd(vk, holdMs)",
+      "brief": "向 Boss 键序追加一个按键。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int",
+          "d": "虚拟键码或字符码"
+        },
+        {
+          "n": "holdMs",
+          "t": "int",
+          "d": "按住毫秒，默认 100"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_bossKeySeqMouse",
+      "cat": "bosskey",
+      "sig": "mi_bossKeySeqMouse(btn, holdMs)",
+      "brief": "向 Boss 键序追加一次鼠标点击。",
+      "params": [
+        {
+          "n": "btn",
+          "t": "int",
+          "d": "0=左 1=右 2=中 4=滚轮"
+        },
+        {
+          "n": "holdMs",
+          "t": "int",
+          "d": "按住毫秒，默认 80"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_bossKeySeqClear",
+      "cat": "bosskey",
+      "sig": "mi_bossKeySeqClear()",
+      "brief": "清空 Boss 键序。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_bossKeySeqCount",
+      "cat": "bosskey",
+      "sig": "mi_bossKeySeqCount()",
+      "brief": "Boss 键序的条目数。",
+      "params": [],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_bossKeySeqCooldown",
+      "cat": "bosskey",
+      "sig": "mi_bossKeySeqCooldown(ms)",
+      "brief": "设置 Boss 键序的循环冷却。",
+      "params": [
+        {
+          "n": "ms",
+          "t": "int",
+          "d": "毫秒，默认 30000"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_forceBossKeySeq",
+      "cat": "bosskey",
+      "sig": "mi_forceBossKeySeq()",
+      "brief": "无视冷却，立刻触发一次 Boss 键序。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_getTarget",
+      "cat": "target",
+      "sig": "mi_getTarget()",
+      "brief": "刷新并读取 C# 侧选出的最优目标。",
+      "params": [],
+      "returns": "res, type",
+      "note": "res：1=有目标，0=无。type 见 TargetType：星行者 1~7，国风 11~15。结果会缓存在 C++ 侧，后面的 mi_target* 全依赖这次调用。",
+      "trap": true
+    },
+    {
+      "name": "mi_targetType",
+      "cat": "target",
+      "sig": "mi_targetType(second)",
+      "brief": "读取上一次 mi_getTarget 缓存的类型。",
+      "params": [
+        {
+          "n": "second",
+          "t": "int",
+          "d": "非 0 = 读次优目标的类型，默认 0"
+        }
+      ],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_targetCount",
+      "cat": "target",
+      "sig": "mi_targetCount(idx)",
+      "brief": "读取各类目标的数量。",
+      "params": [
+        {
+          "n": "idx",
+          "t": "int",
+          "d": "0=星行者，1=LV4，2=鼠，默认 0"
+        }
+      ],
+      "returns": "integer",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_targetBegin",
+      "cat": "target",
+      "sig": "mi_targetBegin(second)",
+      "brief": "把缓存的目标设为图导航目标。",
+      "params": [
+        {
+          "n": "second",
+          "t": "int",
+          "d": "非 0 = 用次优目标，默认 0"
+        }
+      ],
+      "returns": "无",
+      "note": "本质是 mi_setGraphGoal(目标坐标)，不会自动切到图模式。",
+      "trap": false
+    },
+    {
+      "name": "mi_getSecondTarget",
+      "cat": "target",
+      "sig": "mi_getSecondTarget()",
+      "brief": "刷新并读取次优目标（排除最优后的第二优先）。",
+      "params": [],
+      "returns": "res, type",
+      "note": "res：1=有，0=无。次优目标不带密码。",
+      "trap": false
+    },
+    {
+      "name": "mi_targetDist",
+      "cat": "target",
+      "sig": "mi_targetDist(second)",
+      "brief": "自身到缓存目标的平面距离。",
+      "params": [
+        {
+          "n": "second",
+          "t": "int",
+          "d": "非 0 = 算次优目标，默认 0"
+        }
+      ],
+      "returns": "number",
+      "note": "只算 X/Y 平面距离，不含高度。",
+      "trap": false
+    },
+    {
+      "name": "mi_targetDetectPwd",
+      "cat": "target",
+      "sig": "mi_targetDetectPwd()",
+      "brief": "依次敲入缓存的星行者密码。",
+      "params": [],
+      "returns": "无",
+      "note": "每个键按住 100ms，键间隔 100ms，按密码长度同步阻塞。",
+      "trap": false
+    },
+    {
+      "name": "mi_dropCounts",
+      "cat": "target",
+      "sig": "mi_dropCounts()",
+      "brief": "读取星行者临时背包的掉落统计。",
+      "params": [],
+      "returns": "fate, gem, legend",
+      "note": "依次是命运眷顾、光辉宝石、传说宝石。",
+      "trap": false
+    },
+    {
+      "name": "mi_lootRequest",
+      "cat": "loot",
+      "sig": "mi_lootRequest()",
+      "brief": "发起一次掉落物快照请求（C++/Lua 发起 → C# 回填）。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_lootCount",
+      "cat": "loot",
+      "sig": "mi_lootCount()",
+      "brief": "读取掉落物数量。",
+      "params": [],
+      "returns": "integer",
+      "note": "未就绪返回 -1，不是 0。没有超时机制，需要调用方自己写轮询上限，否则可能永远等到 -1。",
+      "trap": true
+    },
+    {
+      "name": "mi_lootItem",
+      "cat": "loot",
+      "sig": "mi_lootItem(idx)",
+      "brief": "按索引读取掉落物名称与数量。",
+      "params": [
+        {
+          "n": "idx",
+          "t": "int",
+          "d": "从 1 开始，默认 1"
+        }
+      ],
+      "returns": "name, num；无效索引返回 nil",
+      "note": "名字从 UTF-8 转成 GBK 再返回。",
+      "trap": false
+    },
+    {
+      "name": "mi_setStuckParams",
+      "cat": "stuck",
+      "sig": "mi_setStuckParams(maxJump, stuckTimeSec, progressDist, pendingTimeout)",
+      "brief": "设置卡死判定与脱困参数。",
+      "params": [
+        {
+          "n": "maxJump",
+          "t": "int",
+          "d": "二段跳次数，传 0 = 不修改"
+        },
+        {
+          "n": "stuckTimeSec",
+          "t": "number",
+          "d": "判定卡死需要等待的秒数，传 0 = 不修改"
+        },
+        {
+          "n": "progressDist",
+          "t": "number",
+          "d": "进展阈值，传 0 = 不修改"
+        },
+        {
+          "n": "pendingTimeout",
+          "t": "number",
+          "d": "pending 超时，传 0 = 不修改"
+        }
+      ],
+      "returns": "无",
+      "note": "只有 4 个参数。头文件里那段提到 sideLevels/backStepSec/sideStepSec 的注释是过期的，签名里早已没有。",
+      "trap": true
+    },
+    {
+      "name": "mi_setStuckEnabled",
+      "cat": "stuck",
+      "sig": "mi_setStuckEnabled(enable)",
+      "brief": "脱困总开关（关闭=连卡住检测一起停）。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_isStuckPending",
+      "cat": "stuck",
+      "sig": "mi_isStuckPending()",
+      "brief": "是否已判定卡死、等待处理。",
+      "params": [],
+      "returns": "boolean",
+      "note": "跳满 maxJump 仍然卡住时返回 true，此时应该执行自定义脱困；处理完调 mi_clearStuckPending。",
+      "trap": false
+    },
+    {
+      "name": "mi_clearStuckPending",
+      "cat": "stuck",
+      "sig": "mi_clearStuckPending()",
+      "brief": "清除卡死待处理标记。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_setPowerEEnabled",
+      "cat": "detect",
+      "sig": "mi_setPowerEEnabled(enable)",
+      "brief": "断罪封印值检测：封印满了自动短按 E。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "10 秒冷却。要真正生效，还得在加成里允许。",
+      "trap": false
+    },
+    {
+      "name": "mi_setAutoReloadEnabled",
+      "cat": "detect",
+      "sig": "mi_setAutoReloadEnabled(enable)",
+      "brief": "弹药检测：主武器弹尽时静止长按 R 恢复。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "长按 6 秒，10 秒冷却。要真正生效，还得在加成里允许。",
+      "trap": false
+    },
+    {
+      "name": "mi_setRoomTimeExit",
+      "cat": "detect",
+      "sig": "mi_setRoomTimeExit(enable)",
+      "brief": "房间剩余时间不足 10 秒时终止本局。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "int/bool",
+          "d": "0 或 false = 关闭，非 0 = 开启"
+        }
+      ],
+      "returns": "无",
+      "note": "运行时默认关闭（mi_start 会显式置 0，keySeq.json 里 config.roomT 缺省也是 0）。注意：不传参数等于开启。",
+      "trap": true
+    },
+    {
+      "name": "mi_setDisconnectExit",
+      "cat": "detect",
+      "sig": "mi_setDisconnectExit(enable)",
+      "brief": "断线且重连次数大于 1 时终止本局。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "int/bool",
+          "d": "0 或 false = 关闭，非 0 = 开启"
+        }
+      ],
+      "returns": "无",
+      "note": "运行时默认关闭（mi_start 会显式置 0，config.discT 缺省也是 0），与房间时间检测互相独立。注意：不传参数等于开启。",
+      "trap": true
+    },
+    {
+      "name": "mi_keyDown",
+      "cat": "rawinput",
+      "sig": "mi_keyDown(vk)",
+      "brief": "按下按键。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int",
+          "d": "虚拟键码"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_keyUp",
+      "cat": "rawinput",
+      "sig": "mi_keyUp(vk)",
+      "brief": "抬起按键。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int",
+          "d": "虚拟键码"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_mouseDown",
+      "cat": "rawinput",
+      "sig": "mi_mouseDown(btn)",
+      "brief": "按下鼠标键。",
+      "params": [
+        {
+          "n": "btn",
+          "t": "int",
+          "d": "0=左 1=右 2=中 4=滚轮，默认 0"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_mouseUp",
+      "cat": "rawinput",
+      "sig": "mi_mouseUp(btn)",
+      "brief": "抬起鼠标键。",
+      "params": [
+        {
+          "n": "btn",
+          "t": "int",
+          "d": "0=左 1=右 2=中 4=滚轮，默认 0"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mi_scroll",
+      "cat": "rawinput",
+      "sig": "mi_scroll(delta)",
+      "brief": "滚动滚轮。",
+      "params": [
+        {
+          "n": "delta",
+          "t": "number",
+          "d": "格数，1.0 = 一格"
+        }
+      ],
+      "returns": "无",
+      "note": "内部乘 120 换算成 Windows 的滚轮单位，所以传 1.0 而不是 120。",
+      "trap": false
+    },
+    {
+      "name": "kd",
+      "cat": "input",
+      "sig": "kd(vk, ...)",
+      "brief": "按下按键，可一次传多个。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int...",
+          "d": "虚拟键码，支持多个"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "ku",
+      "cat": "input",
+      "sig": "ku(vk, ...)",
+      "brief": "抬起按键，可一次传多个。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int...",
+          "d": "虚拟键码，支持多个"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "kp",
+      "cat": "input",
+      "sig": "kp(vk, ..., delay)",
+      "brief": "依次按下 → 延时 → 抬起。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int...",
+          "d": "虚拟键码，支持多个"
+        },
+        {
+          "n": "delay",
+          "t": "int",
+          "d": "按住毫秒，默认 10"
+        }
+      ],
+      "returns": "无",
+      "note": "最后一个数字 ≥10 会被当成延时而不是按键。所以 kp(65) 不是“按 A”，而是“延时 65ms”。",
+      "trap": true
+    },
+    {
+      "name": "combo",
+      "cat": "input",
+      "sig": "combo(vk, ...)",
+      "brief": "组合键：一起按下，再一起抬起。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int...",
+          "d": "虚拟键码，支持多个"
+        }
+      ],
+      "returns": "无",
+      "note": "与 kp 的区别：kp 是一个个按，combo 是同时按住。",
+      "trap": false
+    },
+    {
+      "name": "mld",
+      "cat": "input",
+      "sig": "mld()",
+      "brief": "鼠标左键按下。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mlu",
+      "cat": "input",
+      "sig": "mlu()",
+      "brief": "鼠标左键抬起。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mlc",
+      "cat": "input",
+      "sig": "mlc()",
+      "brief": "鼠标左键单击。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mrd",
+      "cat": "input",
+      "sig": "mrd()",
+      "brief": "鼠标右键按下。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mru",
+      "cat": "input",
+      "sig": "mru()",
+      "brief": "鼠标右键抬起。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mrc",
+      "cat": "input",
+      "sig": "mrc()",
+      "brief": "鼠标右键单击。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mmd",
+      "cat": "input",
+      "sig": "mmd()",
+      "brief": "鼠标中键按下。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mmu",
+      "cat": "input",
+      "sig": "mmu()",
+      "brief": "鼠标中键抬起。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mmc",
+      "cat": "input",
+      "sig": "mmc()",
+      "brief": "鼠标中键单击。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mms",
+      "cat": "input",
+      "sig": "mms(delta)",
+      "brief": "滚动滚轮。",
+      "params": [
+        {
+          "n": "delta",
+          "t": "int",
+          "d": "滚轮增量，正负代表方向"
+        }
+      ],
+      "returns": "无",
+      "note": "注册表里 mms 指向的实现叫 mws，这是正常的。",
+      "trap": false
+    },
+    {
+      "name": "mmv",
+      "cat": "input",
+      "sig": "mmv(x)",
+      "brief": "水平移动鼠标。",
+      "params": [
+        {
+          "n": "x",
+          "t": "int",
+          "d": "水平位移 dx"
+        }
+      ],
+      "returns": "无",
+      "note": "名字里是 V，实际做的是水平移动。和 mmh 正好互换。",
+      "trap": true
+    },
+    {
+      "name": "mmh",
+      "cat": "input",
+      "sig": "mmh(y)",
+      "brief": "垂直移动鼠标。",
+      "params": [
+        {
+          "n": "y",
+          "t": "int",
+          "d": "垂直位移 dy"
+        }
+      ],
+      "returns": "无",
+      "note": "名字里是 H，实际做的是垂直移动。和 mmv 正好互换。",
+      "trap": true
+    },
+    {
+      "name": "mset",
+      "cat": "input",
+      "sig": "mset(x, y)",
+      "brief": "把光标移到屏幕绝对坐标。",
+      "params": [
+        {
+          "n": "x",
+          "t": "int",
+          "d": "屏幕 X"
+        },
+        {
+          "n": "y",
+          "t": "int",
+          "d": "屏幕 Y"
+        }
+      ],
+      "returns": "无",
+      "note": "参数必须是 2 个，否则直接返回。",
+      "trap": false
+    },
+    {
+      "name": "mget",
+      "cat": "input",
+      "sig": "mget()",
+      "brief": "读取当前光标坐标。",
+      "params": [],
+      "returns": "x, y",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "sleep",
+      "cat": "input",
+      "sig": "sleep(ms)",
+      "brief": "延时。",
+      "params": [
+        {
+          "n": "ms",
+          "t": "int",
+          "d": "毫秒，负数按绝对值处理"
+        }
+      ],
+      "returns": "无",
+      "note": "超过 300ms 会按 300ms 分片，每片检查游戏进程和事件锁。游戏进程没了抛 err1，拿不到事件锁抛 err2 —— 这是 luaL_error，会中断脚本。",
+      "trap": true
+    },
+    {
+      "name": "delay",
+      "cat": "input",
+      "sig": "delay(ms)",
+      "brief": "sleep 的别名。",
+      "params": [
+        {
+          "n": "ms",
+          "t": "int",
+          "d": "毫秒"
+        }
+      ],
+      "returns": "无",
+      "note": "同一个实现。",
+      "trap": false
+    },
+    {
+      "name": "enableDebug",
+      "cat": "input",
+      "sig": "enableDebug(enable)",
+      "brief": "开关调试输出。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "debug",
+      "cat": "input",
+      "sig": "debug(enable)",
+      "brief": "开关调试输出。",
+      "params": [
+        {
+          "n": "enable",
+          "t": "bool",
+          "d": "默认 true"
+        }
+      ],
+      "returns": "无",
+      "note": "与 enableDebug 同一个实现。",
+      "trap": false
+    },
+    {
+      "name": "getDebug",
+      "cat": "input",
+      "sig": "getDebug()",
+      "brief": "当前调试输出是否开启。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "allocateConsole",
+      "cat": "input",
+      "sig": "allocateConsole()",
+      "brief": "分配一个控制台窗口并重定向标准输出。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "allocConsole",
+      "cat": "input",
+      "sig": "allocConsole()",
+      "brief": "allocateConsole 的短名别名。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "freeConsole",
+      "cat": "input",
+      "sig": "freeConsole()",
+      "brief": "释放控制台窗口。",
+      "params": [],
+      "returns": "boolean",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "keyDown",
+      "cat": "input",
+      "sig": "keyDown(vk)",
+      "brief": "kd 的长名别名。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int",
+          "d": "虚拟键码"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "keyUp",
+      "cat": "input",
+      "sig": "keyUp(vk)",
+      "brief": "ku 的长名别名。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int",
+          "d": "虚拟键码"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "keyPress",
+      "cat": "input",
+      "sig": "keyPress(vk, ..., delay)",
+      "brief": "kp 的长名别名。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int...",
+          "d": "虚拟键码"
+        },
+        {
+          "n": "delay",
+          "t": "int",
+          "d": "默认 10"
+        }
+      ],
+      "returns": "无",
+      "note": "同样有“末位 ≥10 当延时”的规则。",
+      "trap": true
+    },
+    {
+      "name": "comboKey",
+      "cat": "input",
+      "sig": "comboKey(vk, ...)",
+      "brief": "combo 的长名别名。",
+      "params": [
+        {
+          "n": "vk",
+          "t": "int...",
+          "d": "虚拟键码"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseLeftDown",
+      "cat": "input",
+      "sig": "mouseLeftDown()",
+      "brief": "mld 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseLeftUp",
+      "cat": "input",
+      "sig": "mouseLeftUp()",
+      "brief": "mlu 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseLeftClick",
+      "cat": "input",
+      "sig": "mouseLeftClick()",
+      "brief": "mlc 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseRightDown",
+      "cat": "input",
+      "sig": "mouseRightDown()",
+      "brief": "mrd 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseRightUp",
+      "cat": "input",
+      "sig": "mouseRightUp()",
+      "brief": "mru 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseRightClick",
+      "cat": "input",
+      "sig": "mouseRightClick()",
+      "brief": "mrc 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseMiddleDown",
+      "cat": "input",
+      "sig": "mouseMiddleDown()",
+      "brief": "mmd 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseMiddleUp",
+      "cat": "input",
+      "sig": "mouseMiddleUp()",
+      "brief": "mmu 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseMiddleClick",
+      "cat": "input",
+      "sig": "mouseMiddleClick()",
+      "brief": "mmc 的长名别名。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseWheel",
+      "cat": "input",
+      "sig": "mouseWheel(delta)",
+      "brief": "mms 的长名别名。",
+      "params": [
+        {
+          "n": "delta",
+          "t": "int",
+          "d": "滚轮增量"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "mouseMoveH",
+      "cat": "input",
+      "sig": "mouseMoveH(v)",
+      "brief": "垂直移动鼠标。",
+      "params": [
+        {
+          "n": "v",
+          "t": "int",
+          "d": "垂直位移"
+        }
+      ],
+      "returns": "无",
+      "note": "名字写 H，实际是垂直移动（映射到 mmv 的实现）。",
+      "trap": true
+    },
+    {
+      "name": "mouseMoveV",
+      "cat": "input",
+      "sig": "mouseMoveV(v)",
+      "brief": "水平移动鼠标。",
+      "params": [
+        {
+          "n": "v",
+          "t": "int",
+          "d": "水平位移"
+        }
+      ],
+      "returns": "无",
+      "note": "名字写 V，实际是水平移动（映射到 mmh 的实现）。",
+      "trap": true
+    },
+    {
+      "name": "setMousePos",
+      "cat": "input",
+      "sig": "setMousePos(x, y)",
+      "brief": "mset 的长名别名。",
+      "params": [
+        {
+          "n": "x",
+          "t": "int",
+          "d": "屏幕 X"
+        },
+        {
+          "n": "y",
+          "t": "int",
+          "d": "屏幕 Y"
+        }
+      ],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "getMousePos",
+      "cat": "input",
+      "sig": "getMousePos()",
+      "brief": "mget 的长名别名。",
+      "params": [],
+      "returns": "x, y",
+      "note": "",
+      "trap": false
+    },
+    {
+      "name": "findPic",
+      "cat": "image",
+      "sig": "findPic(path, r [, x, y, w, h])",
+      "brief": "在屏幕或指定区域里找图。",
+      "params": [
+        {
+          "n": "path",
+          "t": "string",
+          "d": "小图路径"
+        },
+        {
+          "n": "r",
+          "t": "int",
+          "d": "匹配阈值"
+        },
+        {
+          "n": "x, y, w, h",
+          "t": "int",
+          "d": "可选，限定搜索区域"
+        }
+      ],
+      "returns": "x, y；找不到返回 -1, -1",
+      "note": "阈值 r 的取值范围源码里没有约束。另外区域四个参数是直接塞进 CRect(x, y, w, h) 的，第 5、6 个参数语义上是右下角坐标，名字叫 w/h 但没做换算。",
+      "trap": true
+    },
+    {
+      "name": "findPicb64",
+      "cat": "image",
+      "sig": "findPicb64(b64, r [, x, y, w, h])",
+      "brief": "用 base64 图片数据找图。",
+      "params": [
+        {
+          "n": "b64",
+          "t": "string",
+          "d": "base64 编码的图片"
+        },
+        {
+          "n": "r",
+          "t": "int",
+          "d": "匹配阈值"
+        },
+        {
+          "n": "x, y, w, h",
+          "t": "int",
+          "d": "可选，限定搜索区域"
+        }
+      ],
+      "returns": "x, y；找不到返回 -1, -1",
+      "note": "区域参数的问题和 findPic 一样。",
+      "trap": false
+    },
+    {
+      "name": "getColor",
+      "cat": "image",
+      "sig": "getColor(x, y)",
+      "brief": "读取屏幕上某点的颜色。",
+      "params": [
+        {
+          "n": "x",
+          "t": "int",
+          "d": "屏幕 X"
+        },
+        {
+          "n": "y",
+          "t": "int",
+          "d": "屏幕 Y"
+        }
+      ],
+      "returns": "integer",
+      "note": "返回的是 Windows COLORREF，也就是 0xBBGGRR，注意不是 RGB 顺序。",
+      "trap": false
+    },
+    {
+      "name": "oldsc",
+      "cat": "task",
+      "sig": "oldsc(text)",
+      "brief": "按旧版脚本语法执行一段文本。",
+      "params": [
+        {
+          "n": "text",
+          "t": "string",
+          "d": "旧版语法的脚本文本"
+        }
+      ],
+      "returns": "无",
+      "note": "内部把文本交给旧版执行器。旧版语法的具体规则在源码里没有体现。",
+      "trap": false
+    },
+    {
+      "name": "faildWrok",
+      "cat": "task",
+      "sig": "faildWrok()",
+      "brief": "记一次失败，并结束所有战斗客户端。",
+      "params": [],
+      "returns": "无",
+      "note": "拼写就是 faildWrok（源码原文），写成 faildWork 会报 nil。",
+      "trap": true
+    },
+    {
+      "name": "killGame",
+      "cat": "task",
+      "sig": "killGame()",
+      "brief": "结束所有战斗客户端。",
+      "params": [],
+      "returns": "无",
+      "note": "",
+      "trap": false
+    }
+  ]
+}
